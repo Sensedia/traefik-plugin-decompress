@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 )
@@ -29,36 +29,38 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 }
 
 func (m *DecompressMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	log.Println("DecompressMiddleware: received request")
+	slog.Info("DecompressMiddleware: starting request processing", "method", req.Method, "url", req.URL.String())
 
-	if req.Header.Get("Content-Encoding") == "gzip" {
-		log.Println("DecompressMiddleware: gzip encoding detected")
+	if req.Header.Get("x-sensedia-gzip") == "true" {
+		slog.Info("DecompressMiddleware: gzip encoding detected")
+		contentType := req.Header.Get("x-sensedia-content-type")
 
 		gr, err := gzip.NewReader(req.Body)
 		if err != nil {
-			log.Printf("DecompressMiddleware: failed to create gzip reader: %v", err)
-			http.Error(rw, "Failed to decompress request body", http.StatusBadRequest)
+			slog.Error("DecompressMiddleware: failed to create gzip reader", "error", err)
+			http.Error(rw, "Error - DecompressMiddleware: Failed to decompress request body", http.StatusBadRequest)
 			return
 		}
 		defer gr.Close()
 
 		var decompressed bytes.Buffer
 		if _, err := io.Copy(&decompressed, gr); err != nil {
-			log.Printf("DecompressMiddleware: failed to decompress body: %v", err)
-			http.Error(rw, "Failed to read decompressed data", http.StatusBadRequest)
+			slog.Error("DecompressMiddleware: failed to decompress body", "error", err)
+			http.Error(rw, "Error - DecompressMiddleware: Failed to read decompressed data", http.StatusBadRequest)
 			return
 		}
 
-		log.Printf("DecompressMiddleware: decompressed body size: %d bytes", decompressed.Len())
+		slog.Info("DecompressMiddleware: decompressed body size", "size", decompressed.Len())
 
 		req.Body = io.NopCloser(bytes.NewReader(decompressed.Bytes()))
 		req.ContentLength = int64(decompressed.Len())
 		req.Header.Del("Content-Encoding")
+		req.Header.Set("Content-Type", contentType)
 		req.Header.Set("Content-Length", strconv.Itoa(decompressed.Len()))
 	} else {
-		log.Println("DecompressMiddleware: no gzip encoding detected")
+		slog.Info("DecompressMiddleware: no gzip encoding detected")
 	}
 
-	log.Println("DecompressMiddleware: passing request to next handler")
+	slog.Info("DecompressMiddleware: passing request to next handler")
 	m.next.ServeHTTP(rw, req)
 }

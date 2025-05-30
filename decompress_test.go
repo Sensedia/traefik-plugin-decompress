@@ -20,7 +20,7 @@ func gzipCompress(data []byte) []byte {
 	return buf.Bytes()
 }
 
-func TestDecompressMiddleware_GzipRequest(t *testing.T) {
+func TestDecompressMiddleware_SensediaGzipRequest(t *testing.T) {
 	originalBody := []byte("hello world")
 	compressedBody := gzipCompress(originalBody)
 
@@ -39,7 +39,7 @@ func TestDecompressMiddleware_GzipRequest(t *testing.T) {
 	middleware, _ := New(context.Background(), handler, CreateConfig(), "test")
 
 	req := httptest.NewRequest(http.MethodPost, "http://example.com", bytes.NewReader(compressedBody))
-	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("x-sensedia-gzip", "true")
 	req.Header.Set("Content-Length", strconv.Itoa(len(compressedBody)))
 
 	rr := httptest.NewRecorder()
@@ -51,7 +51,7 @@ func TestDecompressMiddleware_GzipRequest(t *testing.T) {
 	}
 }
 
-func TestDecompressMiddleware_NonGzipRequest(t *testing.T) {
+func TestDecompressMiddleware_SensediaNonGzipRequest(t *testing.T) {
 	originalBody := []byte("plain text")
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +77,7 @@ func TestDecompressMiddleware_NonGzipRequest(t *testing.T) {
 	}
 }
 
-func TestDecompressMiddleware_InvalidGzip(t *testing.T) {
+func TestDecompressMiddleware_SensediaInvalidGzip(t *testing.T) {
 	invalidGzip := []byte("not really gzip")
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +87,7 @@ func TestDecompressMiddleware_InvalidGzip(t *testing.T) {
 	middleware, _ := New(context.Background(), handler, CreateConfig(), "test")
 
 	req := httptest.NewRequest(http.MethodPost, "http://example.com", bytes.NewReader(invalidGzip))
-	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("x-sensedia-gzip", "true")
 	rr := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rr, req)
