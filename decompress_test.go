@@ -39,7 +39,7 @@ func TestDecompressMiddleware_GzipRequest(t *testing.T) {
 	middleware, _ := New(context.Background(), handler, CreateConfig(), "test")
 
 	req := httptest.NewRequest(http.MethodPost, "http://example.com", bytes.NewReader(compressedBody))
-	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "x-gzip")
 	req.Header.Set("Content-Length", strconv.Itoa(len(compressedBody)))
 
 	rr := httptest.NewRecorder()
@@ -87,7 +87,7 @@ func TestDecompressMiddleware_InvalidGzip(t *testing.T) {
 	middleware, _ := New(context.Background(), handler, CreateConfig(), "test")
 
 	req := httptest.NewRequest(http.MethodPost, "http://example.com", bytes.NewReader(invalidGzip))
-	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "x-gzip")
 	rr := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rr, req)
