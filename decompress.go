@@ -31,7 +31,7 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 func (m *DecompressMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Println("DecompressMiddleware: received request")
 
-	if req.Header.Get("Content-Encoding") == "gzip" {
+	if req.Header.Get("x-sensedia-gzip") == "true" {
 		log.Println("DecompressMiddleware: gzip encoding detected")
 
 		gr, err := gzip.NewReader(req.Body)
